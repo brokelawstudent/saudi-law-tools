@@ -75,3 +75,80 @@ def test_blank_lines_are_ignored():
     result = parse_document(text)
 
     assert len(result) == 2
+def test_multiline_article():
+    text = """
+المادة الأولى:
+تؤسس الشركة وفقاً لأحكام النظام.
+ويكون مقرها الرئيس في مدينة الرياض.
+ويجوز لها إنشاء فروع داخل المملكة.
+
+المادة الثانية:
+تحدد أغراض الشركة وفقاً لنظامها الأساس.
+"""
+
+    result = parse_document(text)
+
+    assert len(result) == 2
+
+    assert result[0]["element"] == "article"
+    assert result[0]["article_number"] == 1
+    assert result[0]["text"] == (
+        "تؤسس الشركة وفقاً لأحكام النظام.\n"
+        "ويكون مقرها الرئيس في مدينة الرياض.\n"
+        "ويجوز لها إنشاء فروع داخل المملكة."
+    )
+
+    assert result[1]["element"] == "article"
+    assert result[1]["article_number"] == 2
+    assert result[1]["text"] == (
+        "تحدد أغراض الشركة وفقاً لنظامها الأساس."
+    )
+
+
+def test_heading_ends_current_article():
+    text = """
+المادة الأولى:
+هذا هو نص المادة الأولى.
+وهذا سطر إضافي.
+
+الفصل الثاني: الإدارة
+
+المادة الثانية:
+هذا هو نص المادة الثانية.
+"""
+
+    result = parse_document(text)
+
+    assert len(result) == 3
+
+    assert result[0]["element"] == "article"
+    assert result[0]["article_number"] == 1
+    assert result[0]["text"] == (
+        "هذا هو نص المادة الأولى.\n"
+        "وهذا سطر إضافي."
+    )
+
+    assert result[1]["element"] == "heading"
+    assert result[1]["type"] == "chapter"
+    assert result[1]["number"] == 2
+    assert result[1]["title"] == "الإدارة"
+
+    assert result[2]["element"] == "article"
+    assert result[2]["article_number"] == 2
+
+
+def test_multiline_numeric_article():
+    text = """
+المادة (١٥):
+يجب على الشركة الاحتفاظ بالسجلات.
+وتحدد اللائحة مدة الاحتفاظ بها.
+"""
+
+    result = parse_document(text)
+
+    assert len(result) == 1
+    assert result[0]["article_number"] == 15
+    assert result[0]["text"] == (
+        "يجب على الشركة الاحتفاظ بالسجلات.\n"
+        "وتحدد اللائحة مدة الاحتفاظ بها."
+    )
