@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "saudi-law-tools"
+version = "0.1.0"
+description = "Open-source Python tools for parsing, normalizing, and structuring Saudi Arabian legal and regulatory text."
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "Saudi Law Tools Contributors"}
+]
+keywords = [
+    "saudi-arabia",
+    "law",
+    "legal-tech",
+    "arabic",
+    "legal-text",
+    "nlp"
+]
+
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent"
+]
+
+[project.urls]
+Repository = "https://github.com/brokelawstudent/saudi-law-tools"
+Issues = "https://github.com/brokelawstudent/saudi-law-tools/issues"
+
+[tool.setuptools.packages.find]
+include = ["saudi_law_tools*"]
