@@ -104,8 +104,93 @@ When reporting parsing problems, providing a short example of the legal-text str
 ## Disclaimer
 
 Saudi Law Tools is a software project for processing legal text. It does not provide legal advice and should not be treated as a substitute for professional legal analysis.
+## Available Tools
+
+### Parse Articles
+
+```python
+from saudi_law_tools import parse_article
+
+result = parse_article(
+    "المادة الخامسة عشرة: يجب على الشركة الالتزام بالنظام."
+)
+```
+Supports:
+
+- Written Arabic ordinals
+- Western numerals such as `15`
+- Arabic-Indic numerals such as `١٥`
+- Parenthesized numbers such as `(١٥)`
+
+### Parse Document Structure
+```python
+from saudi_law_tools import parse_heading
+
+result = parse_heading(
+    "الفصل الثاني: إدارة الشركة"
+)
+```
+
+Saudi Law Tools can recognize structural headings including:
+
+- `الباب`
+- `الفصل`
+
+- ### Parse Complete Documents
+
+```python
+from saudi_law_tools import parse_document
+
+text = """
+الباب الأول: تأسيس الشركة
+الفصل الأول: أحكام عامة
+المادة الأولى:
+تؤسس الشركة وفقاً لأحكام النظام.
+ويكون مقرها الرئيس في مدينة الرياض.
+"""
+
+result = parse_document(text)
+```
+
+Multi-line article bodies are supported.
+
+### Normalize Arabic Legal Text
+
+```python
+from saudi_law_tools import normalize_arabic_text
+
+text = "المــــادة   ١٥ :   أحكام الشركة"
+
+result = normalize_arabic_text(text)
+```
+
+This can normalize Arabic numerals, remove tatweel characters, and clean repeated whitespace while preserving document structure.
+
+## Development Installation
+
+Until the package is published on PyPI, install the development version directly from the repository:
+
+```bash
+git clone https://github.com/brokelawstudent/saudi-law-tools.git
+cd saudi-law-tools
+python3 -m pip install -e .
+```
+
+## Testing
+
+Install pytest and run the test suite:
+
+```bash
+python3 -m pip install pytest
+python3 -m pytest -q
+```
+
+The test suite also runs automatically through GitHub Actions on pushes and pull requests.
+
+## Status
+
+Saudi Law Tools is currently in early development. Version `0.1.0` is intended as the project's first public release.
 
 ## License
 
 This project is licensed under the MIT License.
-
