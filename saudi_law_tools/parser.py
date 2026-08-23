@@ -1,65 +1,42 @@
+"""Parsers for numbered Saudi legal provisions."""
+
+from __future__ import annotations
+
 import re
 
+from .numbers import DIGIT_TRANSLATION, FEMININE_ORDINALS, parse_number_label
 
-ARABIC_INDIC_TO_ASCII = str.maketrans(
-    "٠١٢٣٤٥٦٧٨٩",
-    "0123456789",
+# Kept as public compatibility aliases for users of version 0.1.x.
+ARABIC_INDIC_TO_ASCII = DIGIT_TRANSLATION
+ARABIC_ORDINALS = FEMININE_ORDINALS
+
+_ordinal_pattern = "|".join(
+    sorted((re.escape(name) for name in FEMININE_ORDINALS), key=len, reverse=True)
 )
-
-ARABIC_ORDINALS = {
-    "الأولى": 1,
-    "الثانية": 2,
-    "الثالثة": 3,
-    "الرابعة": 4,
-    "الخامسة": 5,
-    "السادسة": 6,
-    "السابعة": 7,
-    "الثامنة": 8,
-    "التاسعة": 9,
-    "العاشرة": 10,
-    "الحادية عشرة": 11,
-    "الثانية عشرة": 12,
-    "الثالثة عشرة": 13,
-    "الرابعة عشرة": 14,
-    "الخامسة عشرة": 15,
-    "السادسة عشرة": 16,
-    "السابعة عشرة": 17,
-    "الثامنة عشرة": 18,
-    "التاسعة عشرة": 19,
-    "العشرون": 20,
-}
-
-
-ordinal_pattern = "|".join(
-    sorted(
-        (re.escape(name) for name in ARABIC_ORDINALS),
-        key=len,
-        reverse=True,
-    )
-)
-
 
 ARTICLE_PATTERN = re.compile(
-    rf"^\s*المادة\s+(?:\(\s*)?"
-    rf"(?P<label>{ordinal_pattern}|\d+|[٠-٩]+)"
-    rf"(?:\s*\))?\s*[:：]?\s*(?P<body>.*)\s*$"
+    rf"^\s*الماد(?:ة|ه)\s+(?:[\(（]\s*)?"
+    rf"(?P<label>{_ordinal_pattern}|\d+|[٠-٩۰-۹]+)"
+    rf"(?:\s*[\)）])?\s*[:：\-–—]?\s*(?P<body>.*)\s*$"
+)
+
+_ARTICLE_WITH_SEPARATOR = re.compile(
+    r"^\s*الماد(?:ة|ه)\s+(?:[\(（]\s*)?"
+    r"(?P<label>.+?)(?:\s*[\)）])?\s*[:：\-–—]\s*(?P<body>.*)\s*$"
 )
 
 
 def parse_article(text: str) -> dict:
-    """
-    Parse a Saudi Arabic legal article heading.
+    """Parse a numbered Arabic legal article heading.
 
-    Supported examples:
-        المادة الخامسة: ...
-        المادة الخامسة عشرة: ...
-        المادة 15: ...
-        المادة ١٥: ...
-        المادة (١٥): ...
+    Written feminine ordinals from 1 through 99 are supported, together with
+    Western, Arabic-Indic, and Eastern Arabic digits.
     """
 
     stripped_text = text.strip()
-    match = ARTICLE_PATTERN.match(stripped_text)
+    match = _ARTICLE_WITH_SEPARATOR.match(stripped_text) or ARTICLE_PATTERN.match(
+        stripped_text
+    )
 
     if not match:
         return {
@@ -68,31 +45,18 @@ def parse_article(text: str) -> dict:
             "language": "ar",
         }
 
-    label = match.group("label").strip()
-    article_text = match.group("body").strip()
+    label = match.group("label").strip(" \t()（）")
+    article_number = parse_number_label(label, gender="feminine")
 
-    if label in ARABIC_ORDINALS:
-        article_number = ARABIC_ORDINALS[label]
-    else:
-        article_number = int(
-            label.translate(ARABIC_INDIC_TO_ASCII)
-        )
+    if article_number is None:
+        return {
+            "article_number": None,
+            "text": stripped_text,
+            "language": "ar",
+        }
 
     return {
         "article_number": article_number,
-        "text": article_text,
+        "text": match.group("body").strip(),
         "language": "ar",
     }
-
-
-if __name__ == "__main__":
-    examples = [
-        "المادة الخامسة: يجب على الشركة الالتزام بالنظام.",
-        "المادة الخامسة عشرة: نص المادة.",
-        "المادة 15: نص المادة.",
-        "المادة ١٥: نص المادة.",
-        "المادة (١٥): نص المادة.",
-    ]
-
-    for example in examples:
-        print(parse_article(example))
