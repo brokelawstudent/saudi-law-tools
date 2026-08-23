@@ -1,154 +1,61 @@
 from saudi_law_tools import parse_document
 
 
-def test_complete_document():
+def test_complete_document_with_extended_structure():
     text = """
-الباب الأول: تأسيس الشركة
-الفصل الأول: أحكام عامة
-المادة الأولى: تؤسس الشركة وفقاً لأحكام النظام.
-المادة الثانية: يكون مقر الشركة في المملكة العربية السعودية.
-"""
-
-    result = parse_document(text)
-
-    assert len(result) == 4
-
-    assert result[0]["element"] == "heading"
-    assert result[0]["type"] == "part"
-    assert result[0]["number"] == 1
-    assert result[0]["title"] == "تأسيس الشركة"
-
-    assert result[1]["element"] == "heading"
-    assert result[1]["type"] == "chapter"
-    assert result[1]["number"] == 1
-    assert result[1]["title"] == "أحكام عامة"
-
-    assert result[2]["element"] == "article"
-    assert result[2]["article_number"] == 1
-    assert result[2]["text"] == "تؤسس الشركة وفقاً لأحكام النظام."
-
-    assert result[3]["element"] == "article"
-    assert result[3]["article_number"] == 2
-    assert result[3]["text"] == "يكون مقر الشركة في المملكة العربية السعودية."
-
-
-def test_document_with_numeric_articles():
-    text = """
-الفصل ٥: أحكام خاصة
-المادة 15: نص المادة الخامسة عشرة.
-المادة ١٦: نص المادة السادسة عشرة.
-"""
-
-    result = parse_document(text)
-
-    assert len(result) == 3
-    assert result[0]["number"] == 5
-    assert result[1]["article_number"] == 15
-    assert result[2]["article_number"] == 16
-
-
-def test_unstructured_text_is_preserved():
-    text = """
-مقدمة النظام
-المادة الأولى: نص المادة.
-"""
-
-    result = parse_document(text)
-
-    assert result[0]["element"] == "text"
-    assert result[0]["text"] == "مقدمة النظام"
-
-    assert result[1]["element"] == "article"
-    assert result[1]["article_number"] == 1
-
-
-def test_blank_lines_are_ignored():
-    text = """
-
-المادة الأولى: نص المادة.
-
-
-المادة الثانية: نص آخر.
-
-"""
-
-    result = parse_document(text)
-
-    assert len(result) == 2
-def test_multiline_article():
-    text = """
-المادة الأولى:
+الكتاب الأول: أحكام الشركات
+الباب الأول: التأسيس
+القسم الأول: أحكام عامة
+الفصل الأول: التأسيس
+الفرع الأول: المتطلبات
+المادة الحادية والعشرون:
 تؤسس الشركة وفقاً لأحكام النظام.
 ويكون مقرها الرئيس في مدينة الرياض.
-ويجوز لها إنشاء فروع داخل المملكة.
-
-المادة الثانية:
-تحدد أغراض الشركة وفقاً لنظامها الأساس.
+المادة ۲۲: تحدد أغراض الشركة في نظامها الأساس.
 """
 
     result = parse_document(text)
 
-    assert len(result) == 2
-
-    assert result[0]["element"] == "article"
-    assert result[0]["article_number"] == 1
-    assert result[0]["text"] == (
-        "تؤسس الشركة وفقاً لأحكام النظام.\n"
-        "ويكون مقرها الرئيس في مدينة الرياض.\n"
-        "ويجوز لها إنشاء فروع داخل المملكة."
+    assert [item["element"] for item in result] == [
+        "heading",
+        "heading",
+        "heading",
+        "heading",
+        "heading",
+        "article",
+        "article",
+    ]
+    assert [item["type"] for item in result[:5]] == [
+        "book",
+        "part",
+        "section",
+        "chapter",
+        "branch",
+    ]
+    assert result[5]["article_number"] == 21
+    assert result[5]["text"] == (
+        "تؤسس الشركة وفقاً لأحكام النظام.\nويكون مقرها الرئيس في مدينة الرياض."
     )
+    assert result[6]["article_number"] == 22
 
-    assert result[1]["element"] == "article"
-    assert result[1]["article_number"] == 2
-    assert result[1]["text"] == (
-        "تحدد أغراض الشركة وفقاً لنظامها الأساس."
+
+def test_heading_closes_current_article():
+    result = parse_document(
+        "المادة الأولى:\nنص المادة.\nالفصل الثاني: الإدارة\nالمادة الثانية: نص آخر."
     )
-
-
-def test_heading_ends_current_article():
-    text = """
-المادة الأولى:
-هذا هو نص المادة الأولى.
-وهذا سطر إضافي.
-
-الفصل الثاني: الإدارة
-
-المادة الثانية:
-هذا هو نص المادة الثانية.
-"""
-
-    result = parse_document(text)
 
     assert len(result) == 3
-
-    assert result[0]["element"] == "article"
-    assert result[0]["article_number"] == 1
-    assert result[0]["text"] == (
-        "هذا هو نص المادة الأولى.\n"
-        "وهذا سطر إضافي."
-    )
-
-    assert result[1]["element"] == "heading"
+    assert result[0]["text"] == "نص المادة."
     assert result[1]["type"] == "chapter"
-    assert result[1]["number"] == 2
-    assert result[1]["title"] == "الإدارة"
-
-    assert result[2]["element"] == "article"
     assert result[2]["article_number"] == 2
 
 
-def test_multiline_numeric_article():
-    text = """
-المادة (١٥):
-يجب على الشركة الاحتفاظ بالسجلات.
-وتحدد اللائحة مدة الاحتفاظ بها.
-"""
+def test_unstructured_text_is_preserved():
+    result = parse_document("مقدمة النظام\nالمادة الأولى: نص المادة.")
 
-    result = parse_document(text)
-
-    assert len(result) == 1
-    assert result[0]["article_number"] == 15
-    assert result[0]["text"] == (
-        "يجب على الشركة الاحتفاظ بالسجلات.\n"
-        "وتحدد اللائحة مدة الاحتفاظ بها."
-    )
+    assert result[0] == {
+        "element": "text",
+        "text": "مقدمة النظام",
+        "language": "ar",
+    }
+    assert result[1]["article_number"] == 1

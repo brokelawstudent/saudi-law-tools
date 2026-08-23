@@ -1,0 +1,45 @@
+name: Parsing bug
+description: Report a legal-text structure that is parsed incorrectly
+title: "[Parsing]: "
+labels: ["bug", "parsing"]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for providing a minimal, non-confidential example.
+  - type: textarea
+    id: input
+    attributes:
+      label: Minimal input
+      description: Do not include personal, confidential, or access-restricted text.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual output
+      render: python
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected output
+      render: python
+    validations:
+      required: true
+  - type: input
+    id: package-version
+    attributes:
+      label: Saudi Law Tools version
+      placeholder: 0.2.0
+    validations:
+      required: true
+  - type: input
+    id: python-version
+    attributes:
+      label: Python version
+      placeholder: 3.12
+    validations:
+      required: true
+

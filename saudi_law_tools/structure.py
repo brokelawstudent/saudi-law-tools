@@ -1,63 +1,47 @@
+"""Parsers for structural headings in Arabic legal documents."""
+
+from __future__ import annotations
+
 import re
 
-from .parser import ARABIC_INDIC_TO_ASCII
+from .numbers import MASCULINE_ORDINALS, parse_number_label
 
+ARABIC_MASCULINE_ORDINALS = MASCULINE_ORDINALS
 
-ARABIC_MASCULINE_ORDINALS = {
-    "الأول": 1,
-    "الثاني": 2,
-    "الثالث": 3,
-    "الرابع": 4,
-    "الخامس": 5,
-    "السادس": 6,
-    "السابع": 7,
-    "الثامن": 8,
-    "التاسع": 9,
-    "العاشر": 10,
-    "الحادي عشر": 11,
-    "الثاني عشر": 12,
-    "الثالث عشر": 13,
-    "الرابع عشر": 14,
-    "الخامس عشر": 15,
-    "السادس عشر": 16,
-    "السابع عشر": 17,
-    "الثامن عشر": 18,
-    "التاسع عشر": 19,
-    "العشرون": 20,
+HEADING_TYPES = {
+    "الكتاب": "book",
+    "الباب": "part",
+    "القسم": "section",
+    "الفصل": "chapter",
+    "الفرع": "branch",
 }
 
-
-ordinal_pattern = "|".join(
-    sorted(
-        (re.escape(name) for name in ARABIC_MASCULINE_ORDINALS),
-        key=len,
-        reverse=True,
-    )
+_ordinal_pattern = "|".join(
+    sorted((re.escape(name) for name in MASCULINE_ORDINALS), key=len, reverse=True)
 )
-
+_kind_pattern = "|".join(re.escape(name) for name in HEADING_TYPES)
 
 HEADING_PATTERN = re.compile(
-    rf"^\s*(?P<kind>الباب|الفصل)\s+"
-    rf"(?:\(\s*)?"
-    rf"(?P<label>{ordinal_pattern}|\d+|[٠-٩]+)"
-    rf"(?:\s*\))?"
-    rf"\s*[:：-]?\s*(?P<title>.*)\s*$"
+    rf"^\s*(?P<kind>{_kind_pattern})\s+"
+    rf"(?:[\(（]\s*)?"
+    rf"(?P<label>{_ordinal_pattern}|\d+|[٠-٩۰-۹]+)"
+    rf"(?:\s*[\)）])?"
+    rf"\s*[:：\-–—]?\s*(?P<title>.*)\s*$"
+)
+
+_HEADING_WITH_SEPARATOR = re.compile(
+    rf"^\s*(?P<kind>{_kind_pattern})\s+(?:[\(（]\s*)?"
+    rf"(?P<label>.+?)(?:\s*[\)）])?\s*[:：\-–—]\s*(?P<title>.*)\s*$"
 )
 
 
 def parse_heading(text: str) -> dict:
-    """
-    Parse structural headings in Arabic legal documents.
-
-    Examples:
-        الباب الأول
-        الباب الثاني: الشركات
-        الفصل الثالث: إدارة الشركة
-        الفصل ٥: أحكام عامة
-    """
+    """Parse a book, part, section, chapter, or branch heading."""
 
     stripped_text = text.strip()
-    match = HEADING_PATTERN.match(stripped_text)
+    match = _HEADING_WITH_SEPARATOR.match(stripped_text) or HEADING_PATTERN.match(
+        stripped_text
+    )
 
     if not match:
         return {
@@ -67,22 +51,20 @@ def parse_heading(text: str) -> dict:
             "language": "ar",
         }
 
-    kind = match.group("kind")
-    label = match.group("label").strip()
-    title = match.group("title").strip()
-
-    if label in ARABIC_MASCULINE_ORDINALS:
-        number = ARABIC_MASCULINE_ORDINALS[label]
-    else:
-        number = int(
-            label.translate(ARABIC_INDIC_TO_ASCII)
-        )
-
-    heading_type = "part" if kind == "الباب" else "chapter"
+    number = parse_number_label(
+        match.group("label").strip(" \t()（）"), gender="masculine"
+    )
+    if number is None:
+        return {
+            "type": None,
+            "number": None,
+            "title": stripped_text,
+            "language": "ar",
+        }
 
     return {
-        "type": heading_type,
+        "type": HEADING_TYPES[match.group("kind")],
         "number": number,
-        "title": title,
+        "title": match.group("title").strip(),
         "language": "ar",
     }
